@@ -17,7 +17,7 @@ def preprocess_image(image_path):
 
 # Function to predict the class of the plant disease
 def model_predict(image_path):
-    model_path = r"C:/Users/omkar/Internship/Plant Disease Detection System for Sustainable Agriculture/Project/MobileNetV2_plantdiseases_model.keras"
+    model_path = r"https://github.com/premjavali05/Plant-Disease-Detection-System/releases/download/v1.0/MobileNetV2_plantdiseases_model.keras"
     model = tf.keras.models.load_model(model_path)
 
     img = preprocess_image(image_path)
