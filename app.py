@@ -3,31 +3,68 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import os
+import requests
+import tempfile
 from PIL import Image
 
-# Function to load and preprocess the image
-def preprocess_image(image_path):
-    H, W, C = 224, 224, 3
-    img = cv2.imread(image_path)
-    img = cv2.resize(img, (H, W))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = np.array(img, dtype="float32") / 255.0
-    img = img.reshape(1, H, W, C)
-    return img
+# Disable GPU
+tf.config.set_visible_devices([], 'GPU')
 
-# Function to predict the class of the plant disease
-def model_predict(image_path):
-    model_path = r"https://github.com/user-attachments/files/18413817/MobileNetV2_plantdiseases_model.zip"
-    model = tf.keras.models.load_model(model_path)
+@st.cache_resource
+def load_model():
+    """Load model from GitHub release"""
+    try:
+        # Replace this URL with your actual GitHub release URL
+        MODEL_URL = "https://github.com/user-attachments/files/18413817/MobileNetV2_plantdiseases_model.zip"
+        
+        with st.spinner("Loading model... This may take a minute."):
+            response = requests.get(MODEL_URL)
+            response.raise_for_status()
+            
+            # Save model to temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.h5') as temp_file:
+                temp_file.write(response.content)
+                temp_file_path = temp_file.name
+            
+            # Load model with custom configuration
+            model = tf.keras.models.load_model(
+                temp_file_path,
+                compile=False,
+                options=tf.saved_model.LoadOptions(
+                    experimental_io_device='/job:localhost'
+                )
+            )
+            
+            # Clean up
+            os.unlink(temp_file_path)
+            
+            # Basic compilation
+            model.compile(
+                optimizer='adam',
+                loss='categorical_crossentropy',
+                metrics=['accuracy']
+            )
+            
+            return model
+            
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        return None
 
-    img = preprocess_image(image_path)
-    predictions = model.predict(img)
-    prediction_index = np.argmax(predictions, axis=-1)[0]
-    confidence = np.max(predictions) * 100
+def preprocess_image(image):
+    """Preprocess image for model prediction"""
+    try:
+        # Convert to array and preprocess
+        img_array = np.array(image)
+        img_array = cv2.resize(img_array, (224, 224))
+        img_array = img_array.astype('float32') / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
+        return img_array
+    except Exception as e:
+        st.error(f"Error preprocessing image: {str(e)}")
+        return None
 
-    return prediction_index, confidence
-
-# Class names for the diseases
+# Class names
 CLASS_NAMES = [
     'Apple___Apple_scab', 'Apple___Black_rot', 'Apple___Cedar_apple_rust', 'Apple___healthy',
     'Blueberry___healthy', 'Cherry_(including_sour)___Powdery_mildew', 
@@ -45,36 +82,47 @@ CLASS_NAMES = [
     'Tomato___healthy'
 ]
 
-# Streamlit sidebar
+# Streamlit UI
 st.sidebar.title("Plant Disease Detection System")
 app_mode = st.sidebar.selectbox("Select Page", ["HOME", "DISEASE RECOGNITION"])
 
-# Main Page
 if app_mode == "HOME":
     st.markdown("<h1 style='text-align: center;'>Plant Disease Detection System for Sustainable Agriculture</h1>", unsafe_allow_html=True)
-    st.image(r"index.jpg", use_container_width=True)
-    
+    st.image("index.jpg", use_container_width=True)
+
 elif app_mode == "DISEASE RECOGNITION":
     st.header("Upload an Image for Disease Recognition")
-    test_image = st.file_uploader("Choose an Image:", type=["jpg", "jpeg", "png"])
-
-    if test_image:
-        # Save uploaded image to a temporary file
-        temp_file_path = os.path.join(os.getcwd(), test_image.name)
-        with open(temp_file_path, "wb") as f:
-            f.write(test_image.getbuffer())
-
-        if st.button("Show Image"):
-            st.image(test_image, caption="Uploaded Image", use_container_width=True)
-
-        if st.button("Predict"):
-            with st.spinner("Analyzing the image..."):
-                result_index, confidence = model_predict(temp_file_path)
-                st.success(f"Prediction: {CLASS_NAMES[result_index]}")
-                st.info(f"Confidence: {confidence:.2f}%")
-
-            # Clean up temporary file
-            os.remove(temp_file_path)
-
-    else:
-        st.warning("Please upload an image to proceed.")
+    uploaded_file = st.file_uploader("Choose an Image:", type=["jpg", "jpeg", "png"])
+    
+    if uploaded_file is not None:
+        # Display image
+        image = Image.open(uploaded_file)
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.image(image, caption="Uploaded Image", use_column_width=True)
+        
+        # Make prediction
+        with col2:
+            if st.button("Predict"):
+                with st.spinner("Analyzing..."):
+                    # Load model if not already loaded
+                    model = load_model()
+                    
+                    if model is not None:
+                        # Preprocess image
+                        processed_image = preprocess_image(image)
+                        
+                        if processed_image is not None:
+                            try:
+                                # Make prediction
+                                predictions = model.predict(processed_image, verbose=0)
+                                prediction_idx = np.argmax(predictions[0])
+                                confidence = float(predictions[0][prediction_idx] * 100)
+                                
+                                # Display results
+                                st.success(f"Prediction: {CLASS_NAMES[prediction_idx]}")
+                                st.progress(confidence / 100)
+                                st.info(f"Confidence: {confidence:.2f}%")
+                            except Exception as e:
+                                st.error("Error making prediction. Please try again.")
