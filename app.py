@@ -14,7 +14,7 @@ def load_model():
     # Option 1: If using GitHub releases
     try:
         # Replace this URL with your actual model file URL
-        model_url = "MobileNetV2_plantdiseases_model.keras"
+        model_url = "https://github.com/user-attachments/files/18413817/MobileNetV2_plantdiseases_model.zip"
         response = requests.get(model_url)
         response.raise_for_status()  # Raises an HTTPError if the status is 4xx, 5xx
         
