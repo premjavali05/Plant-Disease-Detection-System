@@ -4,3 +4,9 @@ tensorflow
 opencv-python
 numpy
 opencv-python-headless
+streamlit
+tensorflow
+numpy
+opencv-python-headless
+Pillow
+requests
