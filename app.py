@@ -52,7 +52,7 @@ app_mode = st.sidebar.selectbox("Select Page", ["HOME", "DISEASE RECOGNITION"])
 # Main Page
 if app_mode == "HOME":
     st.markdown("<h1 style='text-align: center;'>Plant Disease Detection System for Sustainable Agriculture</h1>", unsafe_allow_html=True)
-    st.image(r"C:/Users/omkar/Internship/Plant Disease Detection System for Sustainable Agriculture/index.jpg", use_container_width=True)
+    st.image(r"index.jpg", use_container_width=True)
     st.markdown("""<p style='text-align: center;'>This system uses deep learning to detect diseases in plants for sustainable agriculture practices.</p>""", unsafe_allow_html=True)
 
 elif app_mode == "DISEASE RECOGNITION":
