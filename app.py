@@ -1,7 +1,7 @@
 import streamlit as st
 import tensorflow as tf
 import numpy as np
-import opencv-python
+import opencv2-python
 import os
 from PIL import Image
 
