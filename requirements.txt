@@ -2,4 +2,5 @@ pandas
 streamlit
 tensorflow
 opencv-python
+cv2
 numpy
