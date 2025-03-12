@@ -1,5 +1,6 @@
 import streamlit as st
 import tensorflow as tf
+import urllib.request
 import numpy as np
 import cv2
 import os
@@ -17,7 +18,12 @@ def preprocess_image(image_path):
 
 # Function to predict the class of the plant disease
 def model_predict(image_path):
-    model_path = r"https://github.com/premjavali05/Plant-Disease-Detection-System/releases/download/v1.0/MobileNetV2_plantdiseases_model.keras"
+    model_url = "https://github.com/premjavali05/Plant-Disease-Detection-System/releases/download/v1.0/MobileNetV2_plantdiseases_model.keras"
+    model_path = "MobileNetV2_plantdiseases_model.keras"
+
+    if not os.path.exists(model_path):
+        urllib.request.urlretrieve(model_url, model_path)
+
     model = tf.keras.models.load_model(model_path)
 
     img = preprocess_image(image_path)
